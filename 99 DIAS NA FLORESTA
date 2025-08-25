@@ -3,7 +3,7 @@ local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 -- Janela Principal
 local Janela = Rayfield:CreateWindow({
-    Name = "99 DIAS NA FLORESTA - UFO👽",
+    Name = "99 DIAS NA FLORESTA",
     LoadingTitle = "Carregando...",
     LoadingSubtitle = "By EXPLOIT404",
     ConfigurationSaving = { Enabled = true, FolderName = "PainelSynk", FileName = "painel_config" },
@@ -16,22 +16,21 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local killAuraAtivo = false
 local killAuraConnection = nil
-local distanciaKillAura = 50 -- distância inicial em studs
+local distanciaKillAura = 50
 local prefixoCodigo = "2_"
 local codigoNumero = 429
-local ferramentasKillAura = {"Old Axe","Spear","Ice Axe"} -- ferramentas suportadas
-local teleportandoItem = false -- controle para evitar múltiplos teleportes
+local ferramentasKillAura = {"Old Axe","Spear","Ice Axe"}
+local teleportandoItem = false
 
 -- Função Kill Aura
 local function ativarKillAura()
     killAuraConnection = RunService.Heartbeat:Connect(function()
         if not killAuraAtivo then return end
 
-        local charactersFolder = workspace:FindFirstChild("Characters")
         local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not charactersFolder or not rootPart then return end
+        if not rootPart then return end
 
-        -- Procura todas as ferramentas válidas no inventário
+        local charactersFolder = workspace:FindFirstChild("Characters") or workspace
         local ferramentas = {}
         local inventory = LocalPlayer:FindFirstChild("Inventory")
         if inventory then
@@ -43,8 +42,8 @@ local function ativarKillAura()
         if #ferramentas == 0 then return end
 
         for _, npc in pairs(charactersFolder:GetChildren()) do
-            if npc:IsA("Model") then
-                local targetPart = npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart")
+            if npc:IsA("Model") and npc ~= LocalPlayer.Character then
+                local targetPart = npc.PrimaryPart or npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChildWhichIsA("BasePart")
                 if targetPart and (targetPart.Position - rootPart.Position).Magnitude <= distanciaKillAura then
                     for _, tool in pairs(ferramentas) do
                         local codigoAtual = prefixoCodigo .. codigoNumero
@@ -68,115 +67,104 @@ local function desativarKillAura()
     end
 end
 
--- Função de teleporte inteligente para coletar itens
-local function teleportarParaItem(nomeItem)
-    if teleportandoItem then 
-        Rayfield:Notify({Title = "⚠️ Aguarde", Content = "Já estou coletando um item!", Duration = 2})
-        return 
-    end
-    
-    teleportandoItem = true
-    
-    local char = LocalPlayer.Character
-    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if not rootPart then
-        Rayfield:Notify({Title = "❌ Erro", Content = "Personagem não encontrado!", Duration = 3})
-        teleportandoItem = false
-        return
-    end
-    
-    -- Salva posição original
-    local posicaoOriginal = rootPart.CFrame
-    
-    -- Procura o item mais próximo
-    local itemMaisProximo = nil
-    local menorDistancia = math.huge
-    
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj.Name == nomeItem then
-            local itemPart = nil
-            local itemPos = nil
-            
-            if obj:IsA("BasePart") then
-                itemPart = obj
-                itemPos = obj.Position
-            elseif obj:IsA("Model") then
-                itemPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                if itemPart then
-                    itemPos = itemPart.Position
-                end
-            end
-            
-            if itemPos then
-                local distancia = (itemPos - rootPart.Position).Magnitude
-                if distancia < menorDistancia then
-                    menorDistancia = distancia
-                    itemMaisProximo = obj
-                end
-            end
+-- Função de teleporte inteligente para coletar Coal
+local function teleportarParaItem(itemNome, quantidade)
+    for i=1,quantidade do
+        if teleportandoItem then 
+            Rayfield:Notify({Title = "⚠️ Aguarde", Content = "Já estou coletando um item!", Duration = 2})
+            return 
         end
-    end
-    
-    if not itemMaisProximo then
-        Rayfield:Notify({Title = "❌ Item não encontrado", Content = nomeItem.." não foi encontrado no mapa!", Duration = 3})
-        teleportandoItem = false
-        return
-    end
-    
-    -- Determina a posição do item
-    local itemPart = nil
-    if itemMaisProximo:IsA("BasePart") then
-        itemPart = itemMaisProximo
-    elseif itemMaisProximo:IsA("Model") then
-        itemPart = itemMaisProximo.PrimaryPart or itemMaisProximo:FindFirstChildWhichIsA("BasePart")
-    end
-    
-    if not itemPart then
-        Rayfield:Notify({Title = "❌ Erro", Content = "Não foi possível localizar a parte do item!", Duration = 3})
-        teleportandoItem = false
-        return
-    end
-    
-    -- Teleporta para o item
-    local itemPosition = itemPart.Position
-    rootPart.CFrame = CFrame.new(itemPosition + Vector3.new(0, 5, 0)) -- 5 studs acima do item
-    
-    Rayfield:Notify({Title = "🚀 Teleportado", Content = "Coletando "..nomeItem.."...", Duration = 2})
-    
-    -- Espera 2 segundos
-    wait(2)
-    
-    -- Teleporta o item para a posição original junto com o jogador
-    spawn(function()
-        -- Move o item primeiro
-        if itemMaisProximo.Parent then -- verifica se ainda existe
-            if itemMaisProximo:IsA("BasePart") then
-                itemMaisProximo.CFrame = CFrame.new(posicaoOriginal.Position + Vector3.new(0, 3, 0))
-            elseif itemMaisProximo:IsA("Model") then
-                local p = itemMaisProximo.PrimaryPart or itemMaisProximo:FindFirstChildWhichIsA("BasePart")
-                if p then
-                    itemMaisProximo:SetPrimaryPartCFrame(CFrame.new(posicaoOriginal.Position + Vector3.new(0, 3, 0)))
+        
+        teleportandoItem = true
+        local char = LocalPlayer.Character
+        local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+        if not rootPart then
+            Rayfield:Notify({Title = "❌ Erro", Content = "Personagem não encontrado!", Duration = 3})
+            teleportandoItem = false
+            return
+        end
+        local posicaoOriginal = rootPart.CFrame
+        local itemMaisProximo = nil
+        local menorDistancia = math.huge
+        
+        -- Procura o item mais próximo
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj.Name == itemNome then
+                local itemPart = nil
+                local itemPos = nil
+                if obj:IsA("BasePart") then
+                    itemPart = obj
+                    itemPos = obj.Position
+                elseif obj:IsA("Model") then
+                    itemPart = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                    if itemPart then itemPos = itemPart.Position end
+                end
+                if itemPos then
+                    local distancia = (itemPos - rootPart.Position).Magnitude
+                    if distancia < menorDistancia then
+                        menorDistancia = distancia
+                        itemMaisProximo = obj
+                    end
                 end
             end
         end
         
-        -- Depois teleporta o jogador de volta
-        wait(0.1)
-        rootPart.CFrame = posicaoOriginal
+        if not itemMaisProximo then
+            Rayfield:Notify({Title = "❌ Item não encontrado", Content = itemNome.." não foi encontrado no mapa!", Duration = 3})
+            teleportandoItem = false
+            return
+        end
         
-        Rayfield:Notify({Title = "✅ Concluído", Content = nomeItem.." coletado com sucesso!", Duration = 3})
-        teleportandoItem = false
-    end)
+        local itemPart = nil
+        if itemMaisProximo:IsA("BasePart") then
+            itemPart = itemMaisProximo
+        elseif itemMaisProximo:IsA("Model") then
+            itemPart = itemMaisProximo.PrimaryPart or itemMaisProximo:FindFirstChildWhichIsA("BasePart")
+        end
+        if not itemPart then
+            Rayfield:Notify({Title = "❌ Erro", Content = "Não foi possível localizar a parte do item!", Duration = 3})
+            teleportandoItem = false
+            return
+        end
+        
+        -- Teleporta para o item
+        rootPart.CFrame = CFrame.new(itemPart.Position + Vector3.new(0,5,0))
+        Rayfield:Notify({Title = "🚀 Teleportado", Content = "Coletando "..itemNome.." ("..i.."/"..quantidade..")", Duration = 2})
+        
+        wait(0.5) -- delay antes de puxar
+
+        -- Dispara o evento remoto do Coal
+        local itemsFolder = workspace:WaitForChild("Items")
+        if itemsFolder:FindFirstChild(itemNome) then
+            local args = {itemsFolder:WaitForChild(itemNome)}
+            ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RequestStartDraggingItem"):FireServer(unpack(args))
+        end
+        
+        wait(2) -- espera 2 segundos no item
+
+        spawn(function()
+            if itemMaisProximo.Parent then
+                if itemMaisProximo:IsA("BasePart") then
+                    itemMaisProximo.CFrame = CFrame.new(posicaoOriginal.Position + Vector3.new(0,3,0))
+                elseif itemMaisProximo:IsA("Model") then
+                    local p = itemMaisProximo.PrimaryPart or itemMaisProximo:FindFirstChildWhichIsA("BasePart")
+                    if p then
+                        itemMaisProximo:SetPrimaryPartCFrame(CFrame.new(posicaoOriginal.Position + Vector3.new(0,3,0)))
+                    end
+                end
+            end
+            wait(0.1)
+            rootPart.CFrame = posicaoOriginal
+            teleportandoItem = false
+        end)
+        
+        wait(0.3)
+    end
 end
 
 -- Aba Main
 local AbaMain = Janela:CreateTab("Main")
-
--- Seção "."
 AbaMain:CreateSection(".")
-
--- Toggle Kill Aura
 AbaMain:CreateToggle({
     Name = "Kill Aura",
     CurrentValue = false,
@@ -191,8 +179,6 @@ AbaMain:CreateToggle({
         end
     end
 })
-
--- Slider de distância Kill Aura
 AbaMain:CreateSlider({
     Name = "Distância Kill Aura (studs)",
     Range = {1, 200},
@@ -205,27 +191,42 @@ AbaMain:CreateSlider({
     end
 })
 
--- Seção "Extra"
+-- Seção Extra: Dropdown + Botão + Quantidade
 AbaMain:CreateSection("Extra")
 
--- Dropdown simplificado apenas com Coal
 local itemSelecionado = "Coal"
+local quantidadeSelecionada = 1
+
+-- Dropdown item
 AbaMain:CreateDropdown({
     Name = "Escolher Item",
     Options = {"Coal"},
-    CurrentOption = "Coal",
+    CurrentOption = itemSelecionado,
     Callback = function(option)
         itemSelecionado = option
-        Rayfield:Notify({Title = "📦 Item Selecionado", Content = "Você selecionou: "..option, Duration = 3})
+        Rayfield:Notify({Title = "📦 Item Selecionado", Content = "Você selecionou: "..option, Duration = 2})
     end
 })
 
--- Botão para coletar item com teleporte inteligente
+-- Slider quantidade
+AbaMain:CreateSlider({
+    Name = "Quantidade (1 a 10)",
+    Range = {1,10},
+    Increment = 1,
+    Suffix = " itens",
+    CurrentValue = quantidadeSelecionada,
+    Callback = function(value)
+        quantidadeSelecionada = value
+        Rayfield:Notify({Title = "📊 Quantidade Selecionada", Content = "Vai puxar "..quantidadeSelecionada.." "..itemSelecionado.."(s).", Duration = 2})
+    end
+})
+
+-- Botão para coletar
 AbaMain:CreateButton({
-    Name = "Coletar " .. itemSelecionado,
+    Name = "Coletar Item",
     Callback = function()
         if itemSelecionado and not teleportandoItem then
-            teleportarParaItem(itemSelecionado)
+            teleportarParaItem(itemSelecionado, quantidadeSelecionada)
         elseif teleportandoItem then
             Rayfield:Notify({Title = "⚠️ Aguarde", Content = "Já estou coletando um item!", Duration = 2})
         else
